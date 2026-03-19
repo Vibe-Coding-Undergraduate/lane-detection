@@ -13,3 +13,4 @@ pdf是UNet论文，可以用来做第一次尝试（github上有UNet for lane de
 Update by luoyiming, 3.19:
   好像yolo([you only look once](https://docs.ultralytics.com/zh/))上面有预训练好的分割模型框架，用自己的训练数据可以微调，我也不是很清楚，你们有空可以研究一下。视频网站上面应该也有yolo的教程之类的。
   突然感觉我当时自己写框架有点蠢。。。。。
+  Meanwhile, 我最近写代码用的Trae(因为claude code太贵了，不过Trae也挺贵)，你们有啥好用的ai速速告诉我，我写代码一个头两个大。
