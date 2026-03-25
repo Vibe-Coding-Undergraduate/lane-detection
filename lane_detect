@@ -1,0 +1,124 @@
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+def separate_lines(lines):
+    left_lines = []
+    right_lines = []
+
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+
+        # 1. 防止除0
+        if x1 == x2:
+            continue
+
+        # 2. 计算 slope（你写）
+        slope = (y2 - y1)  /   (x2 - x1)
+
+        # 3. 过滤接近水平的线（你写）
+        if abs(slope) < 0.5:
+            continue
+
+        # 4. 分类（你写）
+        if slope < 0:
+            left_lines.append((x1, y1, x2, y2))
+        else:
+            right_lines.append((x1, y1, x2, y2))
+
+    print("left:", len(left_lines))
+    print("right:", len(right_lines))
+    return left_lines, right_lines
+
+# 1. 读取图片
+image_path = input("请输入图片路径（默认 road.jpg）：") or "road.jpg"
+image = cv2.imread(image_path)
+
+if image is None:
+    raise FileNotFoundError("没有找到 road.jpg，请检查图片路径")
+
+# OpenCV 读取是 BGR，显示前转成 RGB
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+# 2. 灰度化
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+# 3. 高斯模糊，减少噪声
+blur = cv2.GaussianBlur(gray, (5, 5), 0)
+
+# 4. Canny 边缘检测
+edges = cv2.Canny(blur, 50, 150)
+
+# 5. 设置感兴趣区域（ROI）
+height, width = edges.shape
+mask = np.zeros_like(edges)
+
+# 只保留下半部分道路区域
+polygon = np.array([[
+    (0, height),
+    (width, height),
+    (width // 2 + 80, height // 2 + 50),
+    (width // 2 - 80, height // 2 + 50)
+]], np.int32)
+
+cv2.fillPoly(mask, polygon, 255)
+masked_edges = cv2.bitwise_and(edges, mask)
+
+# 6. 霍夫变换检测直线
+lines = cv2.HoughLinesP(
+    masked_edges,
+    rho=1,
+    theta=np.pi / 180,
+    threshold=50,
+    minLineLength=40,
+    maxLineGap=100
+)
+if lines is None:
+    print("没有检测到任何线段")
+else:
+    print("检测到的线段数量:", len(lines))
+
+# 7. 在原图上画线
+line_image = np.copy(image_rgb)
+
+if lines is not None:
+    left_lines, right_lines = separate_lines(lines)
+
+    print("left lines:", len(left_lines))
+    print("right lines:", len(right_lines))
+
+    for line in left_lines:
+        x1, y1, x2, y2 = line
+        cv2.line(line_image, (x1, y1), (x2, y2), (255, 0, 0), 4)
+
+    for line in right_lines:
+        x1, y1, x2, y2 = line
+        cv2.line(line_image, (x1, y1), (x2, y2), (0, 255, 0), 4)
+else:
+    print("No lines detected.")
+
+# 8. 显示结果
+plt.figure(figsize=(15, 8))
+
+plt.subplot(2, 2, 1)
+plt.imshow(image_rgb)
+plt.title("Original Image")
+plt.axis("off")
+
+plt.subplot(2, 2, 2)
+plt.imshow(gray, cmap="gray")
+plt.title("Gray Image")
+plt.axis("off")
+
+plt.subplot(2, 2, 3)
+plt.imshow(edges, cmap="gray")
+plt.title("Canny Edges")
+plt.axis("off")
+
+plt.subplot(2, 2, 4)
+plt.imshow(line_image)
+plt.title("Detected Lane Lines")
+plt.axis("off")
+
+plt.tight_layout()
+plt.show()
